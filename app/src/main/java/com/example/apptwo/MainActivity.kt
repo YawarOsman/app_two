@@ -5,6 +5,7 @@ package com.example.apptwo
 import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -18,29 +19,30 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
     }
 
-    @SuppressLint("Range")
+    @SuppressLint("Range", "Recycle")
     fun onClickShowDetails(view: View?) {
         // inserting complete table details in this text field
         val resultView = findViewById<View>(R.id.res) as TextView
 
-        // creating a cursor object of the
-        // content URI
-        val cursor = contentResolver.query(Uri.parse("content://com.demo.user.provider/users"), null, null, null, null)
-
-        // iteration of the cursor
-        // to print whole table
-        if (cursor!!.moveToFirst()) {
-            val strBuild = StringBuilder()
-            while (!cursor.isAfterLast) {
-                strBuild.append("""
-    
-    ${cursor.getString(cursor.getColumnIndex("id"))}-${cursor.getString(cursor.getColumnIndex("name"))}
-    """.trimIndent())
-                cursor.moveToNext()
+        try {
+            contentResolver.query(CONTENT_URI, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val strBuild = StringBuilder()
+                    do {
+                        val id = cursor.getString(cursor.getColumnIndex("id"))
+                        val name = cursor.getString(cursor.getColumnIndex("name"))
+                        strBuild.append("\n$id-$name")
+                    } while (cursor.moveToNext())
+                    resultView.text = strBuild.toString().trim()
+                } else {
+                    resultView.text = "No Records Found"
+                }
+            } ?: run {
+                resultView.text = "Error: Unable to access content provider"
             }
-            resultView.text = strBuild
-        } else {
-            resultView.text = "No Records Found"
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error querying content provider", e)
+            resultView.text = "Error: ${e.message}"
         }
     }
 }
